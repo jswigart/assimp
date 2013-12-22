@@ -44,6 +44,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "BaseImporter.h"
 #include <string>
 
+#include "Q3BSPFileData.h"
+
 namespace Assimp
 {
 namespace Q3BSP
@@ -69,19 +71,24 @@ protected:
 	bool parseFile();
 	bool validateFormat();
 	void getLumps();
-	void countLumps();
-	void getVertices();
-	void getIndices();
-	void getFaces();
-	void getTextures();
-	void getLightMaps();
 	void getEntities();
 
+	template<typename T>
+	void CopyLump( std::vector<T> & lst, Q3BSP::eLumps t )
+	{
+		lst.resize( m_pModel->m_Lumps[ t ].iSize / sizeof( std::vector<T>::value_type ) );
+		const size_t Offset = m_pModel->m_Lumps[ t ].iOffset;
+		const size_t CopySize = sizeof( std::vector<T>::value_type ) * lst.size();
+		if ( CopySize > 0 )
+			memcpy( &lst[ 0 ], &m_Data[ Offset ], CopySize );
+	}
 private:
 	size_t m_sOffset;
 	std::vector<char> m_Data;
 	Q3BSP::Q3BSPModel *m_pModel;
 	Q3BSP::Q3BSPZipArchive *m_pZipArchive;
+
+	Q3BSP::sQ3BSPHeader		m_Header;
 };
 
 } // Namespace Assimp

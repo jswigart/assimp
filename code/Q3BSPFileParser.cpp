@@ -127,23 +127,12 @@ bool Q3BSPFileParser::parseFile()
 	// Imports the dictionary of the level
 	getLumps();
 
-	// Conunt data and prepare model data 
-	countLumps();
-
-	// Read in Vertices
-	getVertices();
-
-	// Read in Indices
-	getIndices();
-	
-	// Read Faces
-	getFaces();
-
-	// Read Textures
-	getTextures();
-
-	// Read Lightmaps
-	getLightMaps();
+	CopyLump( m_pModel->m_Vertices, kVertices );
+	CopyLump( m_pModel->m_Indices, kMeshVerts );
+	CopyLump( m_pModel->m_Faces, kFaces );
+	CopyLump( m_pModel->m_Models, kModels );
+	CopyLump( m_pModel->m_Textures, kTextures );
+	CopyLump( m_pModel->m_Lightmaps, kLightmaps );
 
 	// Load the entities
 	getEntities();
@@ -154,12 +143,14 @@ bool Q3BSPFileParser::parseFile()
 // ------------------------------------------------------------------------------------------------
 bool Q3BSPFileParser::validateFormat()
 {
-	sQ3BSPHeader *pHeader = (sQ3BSPHeader*) &m_Data[ 0 ];
+	memcpy( &m_Header, &m_Data[ 0 ], sizeof( m_Header ) );
 	m_sOffset += sizeof( sQ3BSPHeader );
 
 	// Version and identify string validation
-	if (pHeader->strID[ 0 ] != 'I' || pHeader->strID[ 1 ] != 'B' || pHeader->strID[ 2 ] != 'S' 
-		|| pHeader->strID[ 3 ] != 'P') 
+	if (m_Header.strID[ 0 ] != 'I' || 
+		m_Header.strID[ 1 ] != 'B' || 
+		m_Header.strID[ 2 ] != 'S' || 
+		m_Header.strID[ 3 ] != 'P') 
 	{
 		return false;
 	}
@@ -170,106 +161,34 @@ bool Q3BSPFileParser::validateFormat()
 // ------------------------------------------------------------------------------------------------
 void Q3BSPFileParser::getLumps()
 {
-	size_t Offset = m_sOffset;
-	m_pModel->m_Lumps.resize( kMaxLumps );
-	for ( size_t idx=0; idx < kMaxLumps; idx++ )
-	{
-		sQ3BSPLump *pLump = new sQ3BSPLump;
-		memcpy( pLump, &m_Data[ Offset ], sizeof( sQ3BSPLump ) );
-		Offset += sizeof( sQ3BSPLump );
-		m_pModel->m_Lumps[ idx ] = pLump;
-	}
-}
-
-// ------------------------------------------------------------------------------------------------
-void Q3BSPFileParser::countLumps()
-{
-	m_pModel->m_Vertices.resize( m_pModel->m_Lumps[ kVertices ]->iSize / sizeof( sQ3BSPVertex ) );
-	m_pModel->m_Indices.resize( m_pModel->m_Lumps[ kMeshVerts ]->iSize  / sizeof( int ) );
-	m_pModel->m_Faces.resize( m_pModel->m_Lumps[ kFaces ]->iSize / sizeof( sQ3BSPFace ) );
-	m_pModel->m_Textures.resize( m_pModel->m_Lumps[ kTextures ]->iSize / sizeof( sQ3BSPTexture ) );
-	m_pModel->m_Lightmaps.resize( m_pModel->m_Lumps[ kLightmaps ]->iSize / sizeof( sQ3BSPLightmap ) );
-}
-
-// ------------------------------------------------------------------------------------------------
-void Q3BSPFileParser::getVertices()
-{
-	size_t Offset = m_pModel->m_Lumps[ kVertices ]->iOffset;
-	for ( size_t idx = 0; idx < m_pModel->m_Vertices.size(); idx++ )
-	{
-		sQ3BSPVertex *pVertex = new sQ3BSPVertex;
-		memcpy( pVertex, &m_Data[ Offset ], sizeof( sQ3BSPVertex ) );
-		Offset += sizeof( sQ3BSPVertex );
-		m_pModel->m_Vertices[ idx ] = pVertex;
-	}
-}
-
-// ------------------------------------------------------------------------------------------------
-void Q3BSPFileParser::getIndices()
-{
-	ai_assert( NULL != m_pModel );
-
-	sQ3BSPLump *lump = m_pModel->m_Lumps[ kMeshVerts ];	
-	size_t Offset = (size_t) lump->iOffset;
-	const size_t nIndices = lump->iSize / sizeof( int );
-	m_pModel->m_Indices.resize( nIndices );
-	memcpy( &m_pModel->m_Indices[ 0 ], &m_Data[ Offset ], lump->iSize );
-}
-
-// ------------------------------------------------------------------------------------------------
-void Q3BSPFileParser::getFaces()
-{
-	ai_assert( NULL != m_pModel );
+	// note some games may use a different bsp file version that have a different number
+	// of chunks. it might be a good idea to be explicit about which bsp versions we support
+	// if not for the difficulty of finding information about the chunk structure of all potential versions
+	// without being picky about the versions we choose to process, there is a possibility that files
+	// with different chunk structures may crash. it would be useful to report this bsp version
+	// out to error logging at least so that there would be some information prior to the attempts to export
+	// that would help troubleshoot it if a file with a different version crashed while working versions didn't
+	//ai_assert( m_Header.iVersion == 47 );
+	std::stringstream ss;
+	ss << "Q3BSPFileParser attempting to load version " << m_Header.iVersion << " with " << kMaxLumps << " data lumps" << std::endl;
+	DefaultLogger::get()->info( ss.str() );
 	
-	size_t Offset = m_pModel->m_Lumps[ kFaces ]->iOffset;
-	for ( size_t idx = 0; idx < m_pModel->m_Faces.size(); idx++ )
-	{
-		sQ3BSPFace *pFace = new sQ3BSPFace;
-		memcpy( pFace, &m_Data[ Offset ], sizeof( sQ3BSPFace ) );
-		m_pModel->m_Faces[ idx ] = pFace;
-		Offset += sizeof( sQ3BSPFace );
-	}
-}
+	m_pModel->m_Lumps.resize( kMaxLumps );
 
-// ------------------------------------------------------------------------------------------------
-void Q3BSPFileParser::getTextures()
-{
-	ai_assert( NULL != m_pModel );
-
-	size_t Offset = m_pModel->m_Lumps[ kTextures ]->iOffset;
-	for ( size_t idx=0; idx < m_pModel->m_Textures.size(); idx++ )
-	{
-		sQ3BSPTexture *pTexture = new sQ3BSPTexture;
-		memcpy( pTexture, &m_Data[ Offset ], sizeof(sQ3BSPTexture) );
-		m_pModel->m_Textures[ idx ] = pTexture;
-		Offset += sizeof(sQ3BSPTexture);
-	}
-}
-
-// ------------------------------------------------------------------------------------------------
-void Q3BSPFileParser::getLightMaps()
-{
-	ai_assert( NULL != m_pModel );
-
-	size_t Offset = m_pModel->m_Lumps[kLightmaps]->iOffset;
-	for ( size_t idx=0; idx < m_pModel->m_Lightmaps.size(); idx++ )
-	{
-		sQ3BSPLightmap *pLightmap = new sQ3BSPLightmap;
-		memcpy( pLightmap, &m_Data[ Offset ], sizeof( sQ3BSPLightmap ) );
-		Offset += sizeof( sQ3BSPLightmap );
-		m_pModel->m_Lightmaps[ idx ] = pLightmap;
-	}
+	const size_t Offset = m_sOffset;
+	const size_t CopySize = sizeof( sQ3BSPLump ) * kMaxLumps;
+	memcpy( &m_pModel->m_Lumps[ 0 ], &m_Data[ Offset ], CopySize );
 }
 
 // ------------------------------------------------------------------------------------------------
 void Q3BSPFileParser::getEntities()
 {
-	int size = m_pModel->m_Lumps[ kEntities ]->iSize;
-	m_pModel->m_EntityData.resize( size );
-	if ( size > 0 ) 
+	const int CopySize = m_pModel->m_Lumps[ kEntities ].iSize;
+	m_pModel->m_EntityData.resize( CopySize );
+	if ( CopySize > 0 ) 
 	{
-		size_t Offset = m_pModel->m_Lumps[ kEntities ]->iOffset;
-		memcpy( &m_pModel->m_EntityData[ 0 ], &m_Data[ Offset ], sizeof( char ) * size );
+		const size_t Offset = m_pModel->m_Lumps[ kEntities ].iOffset;
+		memcpy( &m_pModel->m_EntityData[ 0 ], &m_Data[ Offset ], CopySize );
 	}
 }
 

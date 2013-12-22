@@ -141,6 +141,16 @@ struct sQ3BSPLightmap
 	}
 };
 
+struct sQ3BSPModel
+{
+	vec3f mins;		// Bounding box min coord.
+	vec3f maxs;		// Bounding box max coord.
+	int face;		// First face for model.
+	int n_faces;	// Number of faces for model.
+	int brush;		// First brush for model.
+	int n_brushes;	// Number of brushes for model.
+};
+
 struct SubPatch
 {
 	std::vector<size_t> indices;
@@ -172,13 +182,14 @@ enum eLumps
 struct Q3BSPModel
 {
 	std::vector<unsigned char> m_Data;
-	std::vector<sQ3BSPLump*> m_Lumps;
-	std::vector<sQ3BSPVertex*> m_Vertices;
-	std::vector<sQ3BSPFace*> m_Faces;
+	std::vector<sQ3BSPLump> m_Lumps;
+	std::vector<sQ3BSPVertex> m_Vertices;
+	std::vector<sQ3BSPFace> m_Faces;
 	std::vector<int> m_Indices;
-	std::vector<sQ3BSPTexture*> m_Textures;
-	std::vector<sQ3BSPLightmap*> m_Lightmaps;
-	std::vector<char> m_EntityData;
+	std::vector<sQ3BSPTexture> m_Textures;
+	std::vector<sQ3BSPLightmap> m_Lightmaps;
+	std::vector<sQ3BSPModel>	m_Models;
+	std::string m_EntityData;
 	std::string m_ModelName;
 
 	Q3BSPModel() :
@@ -197,29 +208,11 @@ struct Q3BSPModel
 
 	~Q3BSPModel()
 	{
-		for ( unsigned int i=0; i<m_Lumps.size(); i++ )
-			if ( NULL != m_Lumps[i] )
-				delete m_Lumps[i];
-		
-		for ( unsigned int i=0; i<m_Vertices.size(); i++ )
-			if ( NULL != m_Vertices[ i ] )
-				delete m_Vertices[ i ];
-		for ( unsigned int i=0; i<m_Faces.size(); i++ )
-			if ( NULL != m_Faces[ i ] )
-				delete m_Faces[ i ];
-		for ( unsigned int i=0; i<m_Textures.size(); i++ )
-			if ( NULL != m_Textures[ i ] )
-				delete m_Textures[ i ];
-		for ( unsigned int i=0; i<m_Lightmaps.size(); i++ )
-			if ( NULL != m_Lightmaps[ i ] )
-				delete m_Lightmaps[ i ];
-
-		m_Lumps.clear();
-		m_Vertices.clear();
-		m_Faces.clear();
-		m_Textures.clear();
-		m_Lightmaps.clear();
 	}
+
+	size_t countVertices(const std::vector<size_t> & faceIndices ) const;
+	size_t countFaces( const std::vector<size_t> & faceIndices ) const;
+	size_t countTriangles( const std::vector<size_t> & faceIndices ) const;
 };
 
 } // Namespace Q3BSP

@@ -74,9 +74,8 @@ public:
 	bool CanRead( const std::string& pFile, IOSystem* pIOHandler, bool checkSig ) const;
 
 private:
-	typedef std::map<std::string, std::vector<Q3BSP::sQ3BSPFace*>*> FaceMap;
-	typedef std::map<std::string, std::vector<Q3BSP::sQ3BSPFace*>* >::iterator FaceMapIt;
-	typedef std::map<std::string, std::vector<Q3BSP::sQ3BSPFace*>*>::const_iterator FaceMapConstIt;
+	typedef std::map<std::string, std::vector<size_t> /*bsp face indices*/> FaceMap;
+	typedef std::map<std::string, std::vector<size_t> /*bsp face indices*/>::const_iterator FaceMapConstIt;
 
 	const aiImporterDesc* GetInfo () const;
 	void InternReadFile(const std::string& pFile, aiScene* pScene, IOSystem* pIOHandler);
@@ -85,13 +84,11 @@ private:
 	void CreateDataFromImport( const Q3BSP::Q3BSPModel *pModel, aiScene* pScene, Q3BSP::Q3BSPZipArchive *pArchive );
 	void CreateNodes( const Q3BSP::Q3BSPModel *pModel, aiScene* pScene, aiNode *pParent );
 	aiNode *CreateTopology( const Q3BSP::Q3BSPModel *pModel, unsigned int materialIdx, 
-		std::vector<Q3BSP::sQ3BSPFace*> &rArray, aiMesh* pMesh );
-	void createTriangleTopology( const Q3BSP::Q3BSPModel *pModel, Q3BSP::sQ3BSPFace *pQ3BSPFace, aiMesh* pMesh, unsigned int &rFaceIdx, 
+		const std::vector<size_t> &faceIndices, aiMesh* pMesh );
+	void createTriangleTopology( const Q3BSP::Q3BSPModel *pModel, const Q3BSP::sQ3BSPFace & pQ3BSPFace, aiMesh* pMesh, unsigned int &rFaceIdx, 
 		unsigned int &rVertIdx  );
 	void createMaterials( const Q3BSP::Q3BSPModel *pModel, aiScene* pScene, Q3BSP::Q3BSPZipArchive *pArchive );
-	size_t countData( const std::vector<Q3BSP::sQ3BSPFace*> &rArray ) const;
-	size_t countFaces( const std::vector<Q3BSP::sQ3BSPFace*> &rArray ) const;
-	size_t countTriangles( const std::vector<Q3BSP::sQ3BSPFace*> &rArray ) const;
+
 	void createMaterialMap( const Q3BSP::Q3BSPModel *pModel);
 	aiFace *getNextFace( aiMesh *pMesh, unsigned int &rFaceIdx );
 	bool importTextureFromArchive( const Q3BSP::Q3BSPModel *pModel, Q3BSP::Q3BSPZipArchive *pArchive, aiScene* pScene, 
