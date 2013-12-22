@@ -2367,7 +2367,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 	::SetPriorityClass(GetCurrentProcess(),HIGH_PRIORITY_CLASS);
 
 	// initialize the default logger if necessary
-	Assimp::DefaultLogger::create("",Assimp::Logger::VERBOSE);
+	Assimp::DefaultLogger::create(ASSIMP_DEFAULT_LOG_NAME,Assimp::Logger::VERBOSE);
 
 	CLogWindow::Instance().pcStream = new CMyLogStream();
 	Assimp::DefaultLogger::get()->attachStream(CLogWindow::Instance().pcStream,
